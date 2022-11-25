@@ -29,6 +29,10 @@ static asmlinkage void riscv_intc_irq(struct pt_regs *regs)
 	switch (cause) {
 #ifdef CONFIG_SMP
 	case RV_IRQ_SOFT:
+#ifdef CONFIG_VIPI
+        int cpuid = rdvcpuid() - 1;
+        clrvipi0(1 << (cpuid + 1));
+#endif
 		/*
 		 * We only use software interrupts to pass IPIs, so if a
 		 * non-SMP system gets one, then we don't know what to do.

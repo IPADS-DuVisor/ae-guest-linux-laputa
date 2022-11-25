@@ -111,4 +111,118 @@ static inline bool cpu_has_hotplug(unsigned int cpu)
 }
 #endif
 
+#ifdef CONFIG_VIPI
+#include <asm/csr.h>
+
+static inline
+unsigned long rdvcpuid(void) {
+#ifdef CONFIG_FIRESIM
+	register long vcpu_id asm("a0");
+
+	asm volatile ("\n"
+			".option push\n"
+			".option norvc\n"
+
+			/* rdvcpuid */
+			".word 0xf8102577\n"
+
+			".option pop"
+			: "=r"(vcpu_id)
+			:
+			: "memory");
+
+    return vcpu_id;
+#else
+    return csr_read(CSR_VCPUID);
+#endif
+}
+
+static inline
+void wrvcpuid(unsigned long val) {
+#ifdef CONFIG_FIRESIM
+	register long vcpu_id asm("a0") = val;
+
+	asm volatile ("\n"
+			".option push\n"
+			".option norvc\n"
+
+			/* wrvcpuid */
+			".word 0xf8a01077\n"
+
+			".option pop"
+			:
+			: "r"(vcpu_id)
+			: "memory");
+#else
+    csr_write(CSR_VCPUID, val);
+#endif
+}
+
+static inline 
+void setvipi0(unsigned long val) {
+#ifdef CONFIG_FIRESIM
+	register long vipi_id asm("a0") = val;
+
+	asm volatile ("\n"
+			".option push\n"
+			".option norvc\n"
+
+			/* set_vipi0 */
+			".word 0xc8a03077\n"
+
+			".option pop"
+			:
+			: "r"(vipi_id)
+			: "memory");
+#else
+    csr_set(CSR_VIPI0, val);
+#endif
+}
+
+static inline 
+void clrvipi0(unsigned long val) {
+#ifdef CONFIG_FIRESIM
+    /* FIXME: why ~val? */
+	register long vipi_id asm("a0") = ~val;
+
+	asm volatile ("\n"
+			".option push\n"
+			".option norvc\n"
+
+			/* clr_vipi0 */
+			".word 0xc8a02077\n"
+
+			".option pop"
+			:
+			: "r"(vipi_id)
+			: "memory");
+#else
+    csr_clear(CSR_VIPI0, val);
+#endif
+}
+
+static inline
+unsigned long rdvipi0(void) {
+#ifdef CONFIG_FIRESIM
+	register long vipi_id asm("a0");
+
+	asm volatile ("\n"
+			".option push\n"
+			".option norvc\n"
+
+			/* rdvipi0 */
+			".word 0xc8101577\n"
+
+			".option pop"
+			: "=r"(vipi_id)
+			:
+			: "memory");
+
+    return vipi_id;
+#else
+    return csr_read(CSR_VIPI0);
+#endif
+}
+#endif
+
 #endif /* _ASM_RISCV_SMP_H */
