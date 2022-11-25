@@ -90,7 +90,7 @@ static inline void plic_toggle(struct plic_handler *handler,
 
 	raw_spin_lock(&handler->enable_lock);
 	if (enable) {
-        pr_info("reg: 0x%lx, hwirq_mask 0x%lx, hwirq 0x%lx, enable_base 0x%lx", reg, hwirq_mask, hwirq, handler->enable_base);
+        //pr_info("reg: 0x%lx, hwirq_mask 0x%lx, hwirq 0x%lx, enable_base 0x%lx", reg, hwirq_mask, hwirq, handler->enable_base);
 		writel(readl(reg) | hwirq_mask, reg);
     }
 	else {
@@ -232,67 +232,18 @@ static void plic_handle_irq(struct irq_desc *desc)
 	struct irq_chip *chip = irq_desc_get_chip(desc);
 	void __iomem *claim = handler->hart_base + CONTEXT_CLAIM;
 	irq_hw_number_t hwirq;
-	static unsigned long hwirq_cnt = 0;
-	static unsigned long virq_set_cnt = 0;
-    static unsigned long last_hwirq = 0;
-	//virq_set_cnt++;
-	//if (virq_set_cnt % 10 == 0) {
-	//	sbi_ecall(0x9, 0x1234, 7, virq_set_cnt, claim, 8, 9, 0x5678);
-	//}
-
-	hwirq_cnt++;
 
 	WARN_ON_ONCE(!handler->present);
 
 	chained_irq_enter(chip, desc);
-	if (hwirq_cnt % 1 == 0) {
-		///sbi_ecall(0x9, 0x1234, 0x1235, hwirq_cnt, claim, 8, 9, csr_read(CSR_SIP));
-	}
 
-#if 0
-	while ((hwirq = readl(claim)) || (hwirq_cnt == 0)) {
-		int irq = 0;
-		hwirq_cnt++;
-		if ((hwirq_cnt == 1) && (hwirq == 0)) {
-			hwirq = 35;
-			irq = irq_find_mapping(handler->priv->irqdomain, hwirq);
-		} else {
-			irq = irq_find_mapping(handler->priv->irqdomain, hwirq);
-		}
-#else
-    hwirq = readl(claim);
-    last_hwirq = hwirq;
-    if (hwirq == 0) {
-        csr_clear(CSR_SIP, 0x200);
-    }
-
-
-	while (hwirq != 0) {
+	while ((hwirq = readl(claim))) {
 		int irq = irq_find_mapping(handler->priv->irqdomain, hwirq);
-#endif
-		//pr_info("plic_handle_irq hwirq: %ld 0x%lx, irq: %ld 0x%lx, claim: 0x%lx, sip: 0x%lx, sie: 0x%lx, scause: 0x%lx\n", hwirq, hwirq, irq, irq, claim, csr_read(CSR_SIP), csr_read(CSR_SIE), csr_read(CSR_SCAUSE));
-		///sbi_ecall(0x9, 0x1236, 0x1238, hwirq, irq, 3, csr_read(CSR_SIP), 5);
-        if (hwirq == 35) {
-            csr_clear(CSR_SIP, 0x200);
-        }
-		///sbi_ecall(0x9, 0x1237, 0x1239, hwirq, irq, 3, csr_read(CSR_SIP), 5);
-		virq_set_cnt++;
-		if (virq_set_cnt % 2 == 0) {
-			//sbi_ecall(0x9, 0x1234, hwirq, virq_set_cnt, claim, irq, 0x1234, 0x5678);
-		}
 		if (unlikely(irq <= 0))
-			pr_warn_ratelimited("GT debug can't find mapping for hwirq %lu %d\n",
-					hwirq, irq);
+			pr_warn_ratelimited("GT debug can't find mapping for hwirq %lu\n",
+					hwirq);
 		else
 			generic_handle_irq(irq);
-#if 0
-#else
-		//pr_info("plic_handle_irq_2 hwirq: %ld 0x%lx, irq: %ld 0x%lx, claim: 0x%lx\n", hwirq, hwirq, irq, irq, claim);
-        hwirq = readl(claim);
-        //if (hwirq == 0) {
-        //    csr_clear(CSR_SIP, 0x200);
-        //}
-#endif
     }
 
 	chained_irq_exit(chip, desc);

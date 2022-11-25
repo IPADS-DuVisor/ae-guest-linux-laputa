@@ -155,26 +155,6 @@ asmlinkage __visible void smp_callin(void)
 	struct mm_struct *mm = &init_mm;
 	unsigned int curr_cpuid = smp_processor_id();
 
-	/* clear new vipi */
-	int cpu_id = smp_processor_id();
-	long vipi_id = cpu_id + 1;
-
-	register long vipiid asm("a0") = vipi_id;
-
-	pr_info("Get ipi - smpboot - cpu_id %ld, vipi_id %ld\n", cpu_id, vipi_id);
-
-	asm volatile ("\n"
-			".option push\n"
-			".option norvc\n"
-
-			/* clvipi0 */
-            ".word 0xc8a02077\n"
-
-			".option pop"
-		: 
-		: "r"(vipiid)
-		: "memory");
-
 	riscv_clear_ipi();
 
 	/* All kernel threads share the same mm context.  */
@@ -186,6 +166,9 @@ asmlinkage __visible void smp_callin(void)
 	update_siblings_masks(curr_cpuid);
 	set_cpu_online(curr_cpuid, 1);
 
+#ifdef CONFIG_VIPI
+    wrvcpuid(curr_cpuid + 1);
+#endif
 	/*
 	 * Remote TLB flushes are ignored while the CPU is offline, so emit
 	 * a local TLB flush right now just in case.

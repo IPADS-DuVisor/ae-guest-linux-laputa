@@ -136,8 +136,6 @@ void arch_irq_work_raise(void)
 }
 #endif
 
-
-
 void handle_IPI(struct pt_regs *regs)
 {
 	struct pt_regs *old_regs = set_irq_regs(regs);
@@ -145,44 +143,7 @@ void handle_IPI(struct pt_regs *regs)
 	unsigned long *stats = ipi_data[smp_processor_id()].stats;
 
 	irq_enter();
-
-	/* clear new vipi */
-	int cpu_id = smp_processor_id();
-	long vipi_id = cpu_id + 1;
-
-	register long vipiid asm("a0") = vipi_id;
-
-	//pr_info("Get ipi - smp - cpu_id %ld, vipi_id %ld\n", cpu_id, vipi_id);
-
-	//sbi_ecall(0xC200003, cpu_id, cpu_id, cpu_id, cpu_id, cpu_id, cpu_id, cpu_id);
-
-
-	asm volatile ("\n"
-			".option push\n"
-			".option norvc\n"
-
-			/* clvipi0 */
-            ".word 0xc8a02077\n"
-
-			".option pop"
-		: 
-		: "r"(vipiid)
-		: "memory");
-
 	riscv_clear_ipi();
-#if 1
-	asm volatile ("\n"
-			".option push\n"
-			".option norvc\n"
-
-			/* clvipi0 */
-            ".word 0xc8a02077\n"
-
-			".option pop"
-		: 
-		: "r"(vipiid)
-		: "memory");
-#endif
 
 	while (true) {
 		unsigned long ops;
@@ -220,52 +181,9 @@ void handle_IPI(struct pt_regs *regs)
 		mb();
 	}
 
-#if 1
-	asm volatile ("\n"
-			".option push\n"
-			".option norvc\n"
-
-			/* clvipi0 */
-            ".word 0xc8a02077\n"
-
-			".option pop"
-		: 
-		: "r"(vipiid)
-		: "memory");
-#endif
-
 done:
 	irq_exit();
-
-#if 1
-	asm volatile ("\n"
-			".option push\n"
-			".option norvc\n"
-
-			/* clvipi0 */
-            ".word 0xc8a02077\n"
-
-			".option pop"
-		: 
-		: "r"(vipiid)
-		: "memory");
-#endif
-
 	set_irq_regs(old_regs);
-
-#if 1
-	asm volatile ("\n"
-			".option push\n"
-			".option norvc\n"
-
-			/* clvipi0 */
-            ".word 0xc8a02077\n"
-
-			".option pop"
-		: 
-		: "r"(vipiid)
-		: "memory");
-#endif
 }
 
 static const char * const ipi_names[] = {

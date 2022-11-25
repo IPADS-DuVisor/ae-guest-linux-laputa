@@ -22,6 +22,9 @@ static struct irq_domain *intc_domain;
 static asmlinkage void riscv_intc_irq(struct pt_regs *regs)
 {
 	unsigned long cause = regs->cause & ~CAUSE_IRQ_FLAG;
+#ifdef CONFIG_VIPI
+        int cpuid;
+#endif
 
 	if (unlikely(cause >= BITS_PER_LONG))
 		panic("unexpected interrupt cause");
@@ -29,6 +32,10 @@ static asmlinkage void riscv_intc_irq(struct pt_regs *regs)
 	switch (cause) {
 #ifdef CONFIG_SMP
 	case RV_IRQ_SOFT:
+#ifdef CONFIG_VIPI
+        cpuid = rdvcpuid() - 1;
+        clrvipi0(1 << (cpuid + 1));
+#endif
 		/*
 		 * We only use software interrupts to pass IPIs, so if a
 		 * non-SMP system gets one, then we don't know what to do.
