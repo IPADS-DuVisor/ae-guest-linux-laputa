@@ -47,6 +47,18 @@ struct sbiret sbi_ecall(int ext, int fid, unsigned long arg0,
 }
 EXPORT_SYMBOL(sbi_ecall);
 
+void setvipi0(long vipi_id){
+    register long vipiid asm("a0") = vipi_id;
+    asm volatile ("\n"
+            ".option push\n"
+            ".option norvc\n"
+            /* setvipi0 */
+            ".word 0xc8a03077\n"
+            :
+            : "r"(vipiid)
+            : "memory");
+}
+
 int sbi_err_map_linux_errno(int err)
 {
 	switch (err) {
@@ -134,8 +146,17 @@ static void __sbi_set_timer_v01(uint64_t stime_value)
 
 static int __sbi_send_ipi_v01(const unsigned long *hart_mask)
 {
+    unsigned long hartid;
+
+#if 0
 	sbi_ecall(SBI_EXT_0_1_SEND_IPI, 0, (unsigned long)hart_mask,
 		  0, 0, 0, 0, 0);
+#else
+    for_each_set_bit(hartid, hart_mask, NR_CPUS) {
+        setvipi0(1 << (hartid+1));
+    }
+#endif
+    
 	return 0;
 }
 
