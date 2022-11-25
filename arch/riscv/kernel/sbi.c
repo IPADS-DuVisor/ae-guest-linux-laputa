@@ -47,18 +47,6 @@ struct sbiret sbi_ecall(int ext, int fid, unsigned long arg0,
 }
 EXPORT_SYMBOL(sbi_ecall);
 
-void setvipi0(long vipi_id){
-    register long vipiid asm("a0") = vipi_id;
-    asm volatile ("\n"
-            ".option push\n"
-            ".option norvc\n"
-            /* setvipi0 */
-            ".word 0xc8a03077\n"
-            :
-            : "r"(vipiid)
-            : "memory");
-}
-
 int sbi_err_map_linux_errno(int err)
 {
 	switch (err) {
